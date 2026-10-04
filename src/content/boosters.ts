@@ -243,8 +243,8 @@ export const BODYWEIGHT_AUDIO: VideoLink[] = [
   V("What's the ideal body fat % for a footballer?", '385960098/4ddaa33756'),
   V('How to lose fat during the season', '385962533/f93ca11104'),
   V('Should footballers do intermittent fasting?', '385962245/02b8650241'),
-  // The PDF links "barefoot" to the same video as intermittent fasting (SPEC 12).
-  V('The benefits of training barefoot', '385962245/02b8650241'),
+  // The PDF links "barefoot" to the intermittent fasting video; replaced with YouTube (SPEC 12.2).
+  { label: 'The benefits of training barefoot', url: 'https://www.youtube.com/watch?v=islmTD_WZb4', external: true },
 ];
 
 export const BODYWEIGHT_WORKOUTS: Workout[] = [...W4.flatMap((w) => [1, 2, 3, 4].map((n) => bwWorkout(n, w))), ...YOGA];

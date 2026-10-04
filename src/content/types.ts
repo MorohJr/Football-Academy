@@ -5,6 +5,8 @@
 export interface VideoLink {
   label: string;
   url: string;
+  /** true for the YouTube links we added where the source has none or a wrong one (SPEC 12). Shown as "לא מ-Matchfit". */
+  external?: boolean;
 }
 
 /** One exercise line in a workout. Values are kept as written in the source ("12-15", "30 SECS"). */

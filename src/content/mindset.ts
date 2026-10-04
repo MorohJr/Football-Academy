@@ -6,8 +6,7 @@ const V = (label: string, id: string): VideoLink => ({ label, url: `https://vime
 export interface Lesson {
   id: string;
   title: string;
-  /** null when the PDF has no link for it */
-  video: VideoLink | null;
+  video: VideoLink;
 }
 export interface MindsetPart {
   id: string;
@@ -16,7 +15,9 @@ export interface MindsetPart {
   lessons: Lesson[];
 }
 
-const L = (id: string, title: string, vid: string | null): Lesson => ({ id, title, video: vid ? V(title, vid) : null });
+const L = (id: string, title: string, vid: string): Lesson => ({ id, title, video: V(title, vid) });
+/** Lessons with no link in the PDF get a YouTube link (SPEC 12.4). */
+const YT = (id: string, title: string, yt: string): Lesson => ({ id, title, video: { label: title, url: `https://www.youtube.com/watch?v=${yt}`, external: true } });
 
 export const MINDSET_PARTS: MindsetPart[] = [
   {
@@ -54,8 +55,8 @@ export const MINDSET_PARTS: MindsetPart[] = [
   {
     id: 'focus', title: 'Concentration, Focus & Inconsistency', he: 'ריכוז, פוקוס וחוסר עקביות',
     lessons: [
-      L('wrong-thing', 'Being Focused, But On The Wrong Thing', null),
-      L('next-thing', 'Only The Next Thing', null),
+      YT('wrong-thing', 'Being Focused, But On The Wrong Thing', 'TeIsliPr18E'),
+      YT('next-thing', 'Only The Next Thing', '_di4z7oga7Y'),
     ],
   },
   {

@@ -127,8 +127,8 @@ export const FITNESS_TESTS: FitnessTest[] = [
   {
     id: 'yoyo', name: 'Yo-Yo IR Level 2', he: 'יו-יו (התאוששות לסירוגין, רמה 2)', assesses: 'כושר אירובי ומהירות אירובית מרבית', unit: 'level', lowerIsBetter: false, where: 'pitch',
     howTo: ['20 מ\' הלוך וחזור לפי הקלטת שמע, ואזור התאוששות של 5 מ\'.', 'בצפצוף הראשון רצים, מסתובבים בשני, וחוצים את הקו עד השלישי.', '10 שניות הליכה איטית באזור ההתאוששות (5 מ\' הלוך וחזור) וחוזרים לקו.', 'ממשיכים עד שלא מגיעים בזמן. רושמים את הרמה האחרונה שהושלמה.', 'אפליקציה: Bleep Test Solo (iOS). מחליפים רגל סיבוב.'],
-    // No video link for this test in the PDF.
-    videos: [],
+    // No video for this test in the PDF; YouTube link added (SPEC 12.5).
+    videos: [{ label: 'Yo-Yo IR Level 2', url: 'https://www.youtube.com/watch?v=yiAX6oXUTvQ', external: true }],
   },
 ];
 

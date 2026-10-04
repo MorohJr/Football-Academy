@@ -7,6 +7,10 @@ import { PRESEASON_DAYS } from '../content/preseason';
 import { inseasonWeekTemplate } from '../content/inseason';
 import { speedWeek, staminaWeek, bodyweightWeek } from '../content/boosters';
 import { levelForMax, pushDose, coreDose } from '../content/pushcore';
+import { REHAB_VIDEOS } from '../content/injury';
+import { BODYWEIGHT_AUDIO } from '../content/boosters';
+import { FITNESS_TESTS } from '../content/tracking';
+import { MINDSET_PARTS } from '../content/mindset';
 
 // Golden example: the "EXAMPLE" columns of TRUE_TRACKING_SYSTEM (14th-20th, Mon-Sun).
 const W = ['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18', '2026-09-19', '2026-09-20'];
@@ -114,8 +118,20 @@ describe('content integrity', () => {
     const missing = [...ids].filter((id) => !getWorkout(id));
     expect(missing).toEqual([]);
   });
-  it('all video links are Vimeo https links', () => {
-    for (const w of ALL_WORKOUTS) for (const v of [...(w.videos ?? []), ...w.blocks.flatMap((b) => b.videos ?? [])]) expect(v.url).toMatch(/^https:\/\/vimeo\.com\//);
+  it('all video links are Vimeo, or YouTube marked external (E6, SPEC 12)', () => {
+    const all = [
+      ...ALL_WORKOUTS.flatMap((w) => [...(w.videos ?? []), ...w.blocks.flatMap((b) => b.videos ?? [])]),
+      ...REHAB_VIDEOS, ...BODYWEIGHT_AUDIO, ...FITNESS_TESTS.flatMap((t) => t.videos), ...MINDSET_PARTS.flatMap((p) => p.lessons.map((l) => l.video)),
+    ];
+    for (const v of all) expect(v.external ? /^https:\/\/www\.youtube\.com\/watch\?v=/.test(v.url) : /^https:\/\/vimeo\.com\//.test(v.url)).toBe(true);
+    expect(all.filter((v) => v.external)).toHaveLength(5);
+    // no duplicated links across different rehab topics any more
+    expect(new Set(REHAB_VIDEOS.map((v) => v.url)).size).toBe(REHAB_VIDEOS.length);
+  });
+  it('lower body weeks 5-6 has no duplicate exercise', () => {
+    const names = getWorkout('in-lower-3')!.blocks[0]!.exercises.map((e) => e.name);
+    expect(new Set(names).size).toBe(names.length);
+    expect(names).toContain('Leg Adduction');
   });
 });
 

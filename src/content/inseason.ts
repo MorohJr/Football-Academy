@@ -83,7 +83,7 @@ const LOWER: Record<StrengthBlock, { ex: ExerciseRx[]; video: string; note?: str
     video: 'showcase/5887265',
   },
   3: {
-    // The PDF lists "Leg Abduction" twice; the second is most likely Adduction (SPEC 12).
+    // The PDF lists "Leg Abduction" twice; the second was replaced with Leg Adduction (SPEC 12.3).
     ex: all(['Resisted Forward Lunge', 'Lying Band Hamstring Curl', 'Band Front Pull', 'Leg Abduction', 'Leg Adduction', 'Calf Raise'], '3', '12-15', '90s'),
     video: 'showcase/5887287',
   },

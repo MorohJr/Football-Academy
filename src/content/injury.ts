@@ -253,8 +253,8 @@ export const REHAB_VIDEOS: VideoLink[] = [
   V('Meniscus Tear · קרע במניסקוס', '385954694/5a2736fea5'),
   V('Osgood Schlatters Disease · אוסגוד שלאטר', '385954832/64a98c0f39'),
   V('Patellar Tendinopathy · דלקת בגיד הפיקה', '385954917/9b8e6715fc'),
-  // The PDF links PCL to the same video as patellar tendinopathy (source error, SPEC 12).
-  V('Posterior Cruciate Ligament · הרצועה הצולבת האחורית', '385954917/9b8e6715fc'),
+  // The PDF links PCL to the patellar tendinopathy video; replaced with YouTube (SPEC 12.1).
+  { label: 'Posterior Cruciate Ligament · הרצועה הצולבת האחורית', url: 'https://www.youtube.com/watch?v=hYuFjZVy2OE', external: true },
   V('Plantar Fasciitis · דלקת בכף הרגל', '385955139/50ccce87c1'),
   V('Plica Syndrome · תסמונת פליקה', '385955206/cef495ecb9'),
   V('Quad Strain · מתיחה בארבע-ראשי', '385955268/a7aed38425'),
