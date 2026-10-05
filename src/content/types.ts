@@ -16,6 +16,8 @@ export interface ExerciseRx {
   reps?: string;
   rest?: string;
   note?: string;
+  /** key of a pitch drawing in content/drills.ts */
+  diagram?: string;
 }
 
 /**
@@ -39,6 +41,8 @@ export interface Block {
   rounds?: string;
   note?: string;
   videos?: VideoLink[];
+  /** key of a pitch drawing in content/drills.ts */
+  diagram?: string;
 }
 
 export type WorkoutCategory =

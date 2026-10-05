@@ -17,5 +17,5 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true }],
     },
   },
-  { files: ['src/services/__none__.ts'], rules: { 'no-restricted-globals': 'off' } },
+  { files: ['src/services/barcode.ts'], rules: { 'no-restricted-globals': 'off' } },
 );

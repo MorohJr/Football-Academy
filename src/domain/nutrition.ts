@@ -97,7 +97,7 @@ export function dayTargets(input: { weightKg: number; maintenance: number; mode:
     case 'intense':
       out.preCarbs = preCarbs = Math.round(w * 2);
       out.postCarbs = postCarbs = [Math.round(w * 1), Math.round(w * 2)];
-      tips.push(`${preCarbs} ג' פחמימות בארוחה 3-4 שעות לפני האימון, ו-${postCarbs[0]}-${postCarbs[1]} ג' תוך שעתיים אחריו.`, 'שאר הארוחות: חלבון, ירקות ואגוזים (Bible).', 'בשר אדום מתאים לימים עצימים.');
+      tips.push(`${preCarbs} ג' פחמימות בארוחה 3-4 שעות לפני האימון, ועוד ${postCarbs[0]}-${postCarbs[1]} ג' תוך שעתיים אחריו.`, 'שאר הארוחות: חלבון, ירקות ואגוזים (Bible).', 'בשר אדום מתאים לימים עצימים.');
       break;
     case 'light':
       tips.push('מעט פחמימות. הארוחה שלפני האימון הקל: חלבון, שומן וירקות (Bible, carb cycling).', 'בשר לבן בימים קלים.');

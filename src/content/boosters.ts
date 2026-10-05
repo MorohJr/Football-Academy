@@ -100,7 +100,7 @@ const speedPitch = (n: number, week: number): Workout => {
     blocks: [
       { title: 'Warm-Up', kind: 'sequence', exercises: [{ name: 'Full Dynamic Warm-Up' }, { name: 'Priming Exercises', sets: '1', reps: '5 חזרות/ריצות מכל אחד' }] },
       { title: 'Plyometrics', kind: 'straight', exercises: p.plyo.map((name) => ({ name, sets, reps, rest: 'התאוששות מלאה' })) },
-      { title: 'Sprints', kind: 'runs', note: p.reactive, exercises: p.sprints.map((name) => ({ name, sets: SPRINT_SETS[week], reps: '1', rest: 'התאוששות מלאה' })) },
+      { title: 'Sprints', kind: 'runs', note: p.reactive, exercises: p.sprints.map((name, i) => ({ name, sets: SPRINT_SETS[week], reps: '1', rest: 'התאוששות מלאה', diagram: `spd-${n}-${i + 1}` })) },
       { title: 'Cool Down', kind: 'sequence', exercises: [{ name: 'ג\'וג רב-כיווני קל', reps: '2-3 דק\'' }, { name: 'מתיחות סטטיות (או גומייה)' }] },
     ],
   };
@@ -170,8 +170,8 @@ const staminaSession = (n: number, week: number): Workout => {
     videos: [DYNAMIC_WARMUP, V('Multi-Sprint Stamina', s.mss.video), V('Speed Repeatability', s.sr.video)],
     blocks: [
       { title: 'Warm-Up', kind: 'sequence', exercises: [{ name: 'Full Dynamic Warm-Up', note: 'חובה לפני כל אימון.' }] },
-      { title: 'Multi-Sprint Stamina', kind: 'runs', note: `מבנה: ${s.mss.layout}. הלוך וחזור = 2 חזרות.`, exercises: [{ name: 'Multi-Sprint Stamina', sets: MSS_SETS[week], reps: '6', rest: '60s בין סטים' }], videos: [V('Multi-Sprint Stamina', s.mss.video)] },
-      { title: 'Speed Repeatability', kind: 'runs', note: `מבנה: ${s.sr.layout}. חוזרים בהליכה בין חזרות.`, exercises: [{ name: 'Speed Repeatability', sets: SR_SETS[week], reps: '4', rest: '90s בין סטים' }], videos: [V('Speed Repeatability', s.sr.video)] },
+      { title: 'Multi-Sprint Stamina', kind: 'runs', diagram: `sta-mss-${n}`, note: `מבנה: ${s.mss.layout}. הלוך וחזור = 2 חזרות.`, exercises: [{ name: 'Multi-Sprint Stamina', sets: MSS_SETS[week], reps: '6', rest: '60s בין סטים' }], videos: [V('Multi-Sprint Stamina', s.mss.video)] },
+      { title: 'Speed Repeatability', kind: 'runs', diagram: `sta-sr-${n}`, note: `מבנה: ${s.sr.layout}. חוזרים בהליכה בין חזרות.`, exercises: [{ name: 'Speed Repeatability', sets: SR_SETS[week], reps: '4', rest: '90s בין סטים' }], videos: [V('Speed Repeatability', s.sr.video)] },
       { title: 'Cool Down', kind: 'sequence', exercises: [{ name: 'ג\'וג קל', reps: '3 דק\'' }, { name: 'מתיחות סטטיות', reps: '20-30s לכל מתיחה' }] },
     ],
   };

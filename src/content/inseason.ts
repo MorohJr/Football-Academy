@@ -201,7 +201,7 @@ function speedWorkout(week: number): Workout {
     durationMin: 20,
     videos: drills.map((d) => V(d.name, d.video)),
     notes: ['100% בכל ספרינט.'],
-    blocks: drills.map((d) => ({ kind: 'runs' as const, title: d.name, note: d.setup, exercises: [{ name: d.name, sets: '1', reps: String(d.reps[idx]), rest: '1-2 דק\'' }], videos: [V(d.name, d.video)] })),
+    blocks: drills.map((d) => ({ kind: 'runs' as const, title: d.name, note: d.setup, diagram: `in-sp-${g.weeks[0]}-${d.name.slice(-1)}`, exercises: [{ name: d.name, sets: '1', reps: String(d.reps[idx]), rest: '1-2 דק\'' }], videos: [V(d.name, d.video)] })),
   };
 }
 
@@ -253,8 +253,8 @@ function staminaWorkout(week: number): Workout {
     durationMin: 30,
     videos: [V('Run 1', g.run1.video), V('Run 2', g.run2.video)],
     blocks: [
-      { kind: 'runs', title: 'Run 1', note: g.run1.setup, exercises: [{ name: 'Run 1', sets: String(g.run1.sets[i]), reps: String(g.run1.reps[i]), rest: '2-3 דק\' בין סטים' }], videos: [V('Run 1', g.run1.video)] },
-      { kind: 'runs', title: 'Run 2', note: g.run2.setup, exercises: [{ name: 'Run 2', sets: String(g.run2.sets[i]), reps: String(g.run2.reps[i]), rest: '1-2 דק\' בין סטים' }], videos: [V('Run 2', g.run2.video)] },
+      { kind: 'runs', title: 'Run 1', diagram: `in-st-${g.weeks[0]}-1`, note: g.run1.setup, exercises: [{ name: 'Run 1', sets: String(g.run1.sets[i]), reps: String(g.run1.reps[i]), rest: '2-3 דק\' בין סטים' }], videos: [V('Run 1', g.run1.video)] },
+      { kind: 'runs', title: 'Run 2', diagram: `in-st-${g.weeks[0]}-2`, note: g.run2.setup, exercises: [{ name: 'Run 2', sets: String(g.run2.sets[i]), reps: String(g.run2.reps[i]), rest: '1-2 דק\' בין סטים' }], videos: [V('Run 2', g.run2.video)] },
     ],
   };
 }

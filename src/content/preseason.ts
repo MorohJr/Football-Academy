@@ -291,6 +291,7 @@ function saq(n: 1 | 2 | 3 | 4, d: SaqDose): Workout {
     {
       title: 'Speed Circuit',
       kind: 'runs',
+      diagram: 'saq-speed',
       exercises: [{ name: `Speed Circuit ${n}`, sets: String(d.speedSets), reps: '1', rest: 'התאוששות מלאה' }],
       note: 'מסלול בצורת M: 20 מ\' עלייה, 15 מ\' אלכסון ירידה, 15 מ\' אלכסון עלייה, 20 מ\' ירידה. רוחב 30 מ\'.',
       videos: [V(`SAQ ${n} Speed Circuit`, v.speed)],
@@ -298,6 +299,7 @@ function saq(n: 1 | 2 | 3 | 4, d: SaqDose): Workout {
     {
       title: `Stamina Workout ${n}`,
       kind: 'runs',
+      diagram: `saq-stamina-${n}`,
       exercises: [{ name: `Stamina Workout ${n}`, sets: String(d.sets), reps: String(d.reps), rest: `${d.restReps} בין חזרות · ${d.restSets} בין סטים` }],
       note: `${SAQ_STAMINA_RULE[n]} ${SAQ_LAYOUT[n]}`,
       videos: [V(`SAQ ${n} Stamina`, v.stamina)],

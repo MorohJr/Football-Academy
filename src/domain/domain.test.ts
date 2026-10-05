@@ -168,3 +168,30 @@ describe('push & core add-on (R-PC, proposal)', () => {
     expect(coreDose(7).loaded).toBe(true);
   });
 });
+
+describe('R-HOW: every exercise has a written explanation', () => {
+  it('all named exercises resolve', async () => {
+    const { howTo, needsHowTo } = await import('../content/howto');
+    const { CORE_PAIRS, PUSH_LEVELS } = await import('../content/pushcore');
+    const { weakFootWorkout } = await import('../content/weakfoot');
+    const missing = new Set<string>();
+    for (const w of [...ALL_WORKOUTS, weakFootWorkout]) for (const b of w.blocks) for (const e of b.exercises) if (b.kind !== 'runs' && needsHowTo(e.name) && !howTo(e.name)) missing.add(e.name);
+    for (const p of CORE_PAIRS) for (const e of p.ex) if (!howTo(e.name)) missing.add(e.name);
+    for (const l of PUSH_LEVELS) if (!howTo(l.exercise)) missing.add(l.exercise);
+    expect([...missing]).toEqual([]);
+  });
+});
+
+describe('rx parsing (R-WRK)', () => {
+  it('seconds from rest strings', async () => {
+    const { parseSeconds, parseSets, fullRecovery } = await import('./rx');
+    expect(parseSeconds('90s')).toBe(90);
+    expect(parseSeconds('2m')).toBe(120);
+    expect(parseSeconds("1-2 דק'")).toBe(60);
+    expect(parseSeconds('30s לכל צד')).toBe(30);
+    expect(parseSeconds('8-10')).toBeNull();
+    expect(parseSeconds('0')).toBe(0);
+    expect(parseSets('1 לכל רגל')).toBe(1);
+    expect(fullRecovery('התאוששות מלאה')).toBe(true);
+  });
+});
