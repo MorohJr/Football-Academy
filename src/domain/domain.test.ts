@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { acwr, dayLoad, macroTargets, monthlySummaries, pomsTotal, returnToPlayCap, weeklySummaries, type SessionLog } from './tracking';
-import { periodFor, planFor } from './season';
+import { periodFor, planFor, preseasonDay1 } from './season';
 import { addDaysISO, weekday } from './dates';
 import { ALL_WORKOUTS, getWorkout } from '../content';
 import { PRESEASON_DAYS } from '../content/preseason';
@@ -67,7 +67,8 @@ describe('tracking (R-TRK)', () => {
   });
 });
 
-describe('season calendar (R-SEA)', () => {
+describe('season calendar (R-SEA, R-GAM-4)', () => {
+  const ids = (d: string, o = {}) => planFor(d, undefined, o).items.map((i) => i.workoutId ?? i.kind);
   it('default blocks by date', () => {
     expect(periodFor('2026-01-15').programme).toBe('stamina');
     expect(periodFor('2026-02-10').programme).toBe('speed');
@@ -78,30 +79,46 @@ describe('season calendar (R-SEA)', () => {
     expect(periodFor('2026-12-31').programme).toBe('inseason');
     expect(periodFor('2026-10-04')).toMatchObject({ start: '2026-10-01', end: '2026-12-31', dayOfBlock: 4 });
   });
-  it('pre-season: testing on days 1, 36, 70; then the season starts', () => {
-    expect(planFor('2026-06-01').testing).toBe(true);
-    expect(planFor(addDaysISO('2026-06-01', 35)).testing).toBe(true);
-    expect(planFor(addDaysISO('2026-06-01', 69)).testing).toBe(true);
-    expect(planFor(addDaysISO('2026-06-01', 4)).rest).toBe(true); // day 5
-    expect(planFor(addDaysISO('2026-06-01', 70)).week).toBe(1); // day 71 → in-season week 1
+  it('in-season with a Thursday game: Sun speed→upper→core + push&core, Mon lower→core→stamina, Wed IP, Thu game, Fri recovery', () => {
+    expect(weekday('2026-10-08')).toBe(4);
+    expect(ids('2026-10-04')).toEqual(['in-speed-w1', 'in-upper-1', 'in-core-w1', 'pushcore']);
+    expect(ids('2026-10-05')).toEqual(['in-lower-1', 'in-core-w1', 'in-stamina-w1']);
+    expect(planFor('2026-10-06').rest).toBe(true);
+    expect(ids('2026-10-07')).toEqual(['in-ip', 'pushcore', 'weakfoot']);
+    expect(ids('2026-10-08')).toEqual(['pre-match', 'game']);
+    expect(ids('2026-10-09')).toEqual(['active-recovery', 'weakfoot']);
+    expect(planFor('2026-10-10').rest).toBe(true);
+    // weeks change the day after the game
+    expect(planFor('2026-10-08').week).toBe(1);
+    expect(planFor('2026-10-09').week).toBe(2);
   });
-  it('in-season: Saturday game → Tue upper+speed+core, Fri injury prevention, Sat pre-match, Sun recovery', () => {
-    // 2026-10-03 is a Saturday
-    expect(weekday('2026-10-03')).toBe(6);
-    expect(planFor('2026-10-06').sessions.map((s) => s.workoutId)).toEqual(['in-upper-1', 'in-speed-w1', 'in-core-w1']);
-    expect(planFor('2026-10-09').sessions.map((s) => s.workoutId)).toEqual(['in-ip']);
-    expect(planFor('2026-10-10').sessions.map((s) => s.workoutId)).toEqual(['pre-match']);
-    expect(planFor('2026-10-11').sessions.map((s) => s.workoutId)).toEqual(['active-recovery']);
-    expect(planFor('2026-10-05').rest).toBe(true);
+  it('R-GAM-2: a moved game replaces that day\'s training; the fixed day becomes rest', () => {
+    const games = [{ date: '2026-10-05', defaultDate: '2026-10-08' }];
+    const mon = planFor('2026-10-05', undefined, { games });
+    expect(mon.items.map((i) => i.kind)).toEqual(['prematch', 'game']);
+    expect(mon.replaced!.map((r) => r.workoutId)).toEqual(['in-lower-1', 'in-core-w1', 'in-stamina-w1']);
+    expect(planFor('2026-10-08', undefined, { games }).rest).toBe(true);
+    // cancelled: the fixed day is rest too
+    expect(planFor('2026-10-08', undefined, { games: [{ date: '2026-10-08', cancelled: true, defaultDate: '2026-10-08' }] }).rest).toBe(true);
   });
-  it('in-season game day is a setting', () => {
-    // game on Thursday (4): Sunday becomes upper day (offset -4)
-    expect(planFor('2026-10-04', undefined, { gameDay: 4 }).sessions[0]!.workoutId).toBe('in-upper-1');
+  it('pre-season starts so the game is day 3; testing days 1, 36, 70; then the season', () => {
+    // 2026-06-01 is a Monday → day 1 = Tuesday 2026-06-02
+    expect(preseasonDay1('2026-06-01')).toBe('2026-06-02');
+    expect(planFor('2026-06-02').testing).toBe(true);
+    expect(planFor(addDaysISO('2026-06-02', 35)).testing).toBe(true);
+    expect(planFor(addDaysISO('2026-06-02', 69)).testing).toBe(true);
+    expect(weekday(addDaysISO('2026-06-02', 2))).toBe(4); // day 3 is Thursday
+    expect(planFor(addDaysISO('2026-06-02', 2)).items.map((i) => i.kind)).toEqual(['prematch', 'game']);
+    expect(planFor(addDaysISO('2026-06-02', 70)).week).toBe(1);
   });
-  it('boosters: 28 days then transition days', () => {
-    expect(planFor('2026-01-01').sessions.map((s) => s.workoutId)).toEqual(['sta-s1-w1']);
-    expect(planFor('2026-01-29').transition).toBe(true);
-    expect(planFor('2026-02-01').sessions.map((s) => s.workoutId)).toEqual(['spd-gym1-w1', 'spd-pitch1-w1']);
+  it('4-week programmes start the day after the game; extra days are transition', () => {
+    // Jan 2027: blocks start 1/1; 1/1/2027 is a Friday
+    expect(planFor('2027-01-01').items.map((i) => i.workoutId)).toEqual(['sta-s1-w1']);
+    expect(planFor('2027-01-07').items.map((i) => i.kind)).toEqual(['prematch', 'game']); // day 7 = Thursday
+    expect(planFor('2027-01-29').transition).toBe(true);
+  });
+  it('add-ons can be turned off', () => {
+    expect(ids('2026-10-07', { pushCore: false, weakFoot: false })).toEqual(['in-ip']);
   });
 });
 

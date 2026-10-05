@@ -267,28 +267,29 @@ export const INSEASON_WORKOUTS: Workout[] = [
 ];
 
 /**
- * The example week (match on Saturday). Keys are offsets from match day:
- * -5 Mon rest, -4 Tue upper+core+speed, -3 Wed lower+core+stamina, -2 Thu rest, -1 Fri injury prevention,
- * 0 Sat pre-match routine + match, +1 Sun active recovery.
+ * The Matchfit week, by offset from the weekly game (R-GAM-4). With a Thursday game:
+ * -5 Sat rest, -4 Sun speed+upper+core, -3 Mon lower+core+stamina, -2 Tue rest, -1 Wed injury prevention,
+ * 0 Thu pre-match routine + game, +1 Fri active recovery.
  */
 export function inseasonWeekTemplate(week: number): { offset: number; sessions: { workoutId: string; timing: string }[]; rest?: boolean }[] {
   const b = blockOfWeek(week);
   return [
     { offset: -5, sessions: [], rest: true },
+    // Alex has no team training (R-GAM-4): speed first while fresh (Bible), then upper, then core.
     {
       offset: -4,
       sessions: [
-        { workoutId: `in-upper-${b}`, timing: INSEASON_TIMING.upper },
-        { workoutId: `in-speed-w${week}`, timing: INSEASON_TIMING.speed },
-        { workoutId: `in-core-w${week}`, timing: INSEASON_TIMING.core },
+        { workoutId: `in-speed-w${week}`, timing: 'ראשון ביום, כשאתה רענן' },
+        { workoutId: `in-upper-${b}`, timing: 'אחרי המהירות' },
+        { workoutId: `in-core-w${week}`, timing: 'אחרי העליון' },
       ],
     },
     {
       offset: -3,
       sessions: [
-        { workoutId: `in-lower-${b}`, timing: INSEASON_TIMING.lower },
-        { workoutId: `in-core-w${week}`, timing: INSEASON_TIMING.core },
-        { workoutId: `in-stamina-w${week}`, timing: INSEASON_TIMING.stamina },
+        { workoutId: `in-lower-${b}`, timing: 'בוקר, רחוק מהמשחק' },
+        { workoutId: `in-core-w${week}`, timing: 'אחרי הרגליים' },
+        { workoutId: `in-stamina-w${week}`, timing: 'בסוף' },
       ],
     },
     { offset: -2, sessions: [], rest: true },
