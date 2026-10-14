@@ -1,25 +1,52 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { ensureSeed, getSettings } from '../services/entity';
 import { ensureGames } from '../services/plan';
-import { requestPersistentStorage } from '../services/platform';
+import { dropStaleRun } from '../services/runs';
+import { installAudioUnlock, requestPersistentStorage } from '../services/platform';
 import { ToastProvider } from './components/common';
 import { Icon } from './components/Icon';
-import { useToday } from './hooks';
-import { go, useRoute } from './router';
-import { BodyScreen } from './screens/BodyScreen';
-import { FoodScreen, MealScreen, PantryItemScreen } from './screens/FoodScreens';
-import { AnalysisScreen, GameModeScreen, GameScreen, GamesScreen, PitchesScreen } from './screens/GameScreens';
-import { InjuryScreen } from './screens/InjuryScreen';
-import { LibraryScreen } from './screens/LibraryScreen';
-import { MindScreen, WorksheetScreen } from './screens/MindScreens';
-import { BackupScreen, MoreScreen, ProgramsScreen, SettingsScreen } from './screens/MoreScreens';
-import { ReviewScreen } from './screens/ReviewScreen';
+import { useSettings, useToday } from './hooks';
+import { back, go, useRoute } from './router';
+import { IntroScreen, Onboarding } from './screens/Onboarding';
 import { DayScreen, SeasonScreen, WeekScreen } from './screens/WeekScreens';
-import { TestsScreen, TestWizard } from './screens/TestScreens';
 import { TodayScreen } from './screens/TodayScreen';
-import { TrackScreen } from './screens/TrackScreen';
-import { RunScreen, WorkoutScreen } from './screens/WorkoutScreens';
+import { RunScreen } from './screens/RunScreen';
+import { WorkoutScreen } from './screens/WorkoutScreens';
+
+// SPEC 16.3: heavy screens (and the charts they use) load on demand. Today and workout mode stay in the main bundle.
+const TrackScreen = lazy(() => import('./screens/TrackScreen').then((m) => ({ default: m.TrackScreen })));
+const FoodScreen = lazy(() => import('./screens/food/FoodScreen').then((m) => ({ default: m.FoodScreen })));
+const MealScreen = lazy(() => import('./screens/food/Meals').then((m) => ({ default: m.MealScreen })));
+const PantryItemScreen = lazy(() => import('./screens/food/Pantry').then((m) => ({ default: m.PantryItemScreen })));
+const BodyScreen = lazy(() => import('./screens/BodyScreen').then((m) => ({ default: m.BodyScreen })));
+const GamesScreen = lazy(() => import('./screens/GameScreens').then((m) => ({ default: m.GamesScreen })));
+const GameScreen = lazy(() => import('./screens/GameScreens').then((m) => ({ default: m.GameScreen })));
+const GameModeScreen = lazy(() => import('./screens/GameScreens').then((m) => ({ default: m.GameModeScreen })));
+const AnalysisScreen = lazy(() => import('./screens/GameScreens').then((m) => ({ default: m.AnalysisScreen })));
+const PitchesScreen = lazy(() => import('./screens/GameScreens').then((m) => ({ default: m.PitchesScreen })));
+const InjuryScreen = lazy(() => import('./screens/InjuryScreen').then((m) => ({ default: m.InjuryScreen })));
+const LibraryScreen = lazy(() => import('./screens/LibraryScreen').then((m) => ({ default: m.LibraryScreen })));
+const MindScreen = lazy(() => import('./screens/MindScreens').then((m) => ({ default: m.MindScreen })));
+const WorksheetScreen = lazy(() => import('./screens/MindScreens').then((m) => ({ default: m.WorksheetScreen })));
+const MoreScreen = lazy(() => import('./screens/MoreScreens').then((m) => ({ default: m.MoreScreen })));
+const ProgramsScreen = lazy(() => import('./screens/MoreScreens').then((m) => ({ default: m.ProgramsScreen })));
+const SettingsScreen = lazy(() => import('./screens/SettingsScreens').then((m) => ({ default: m.SettingsScreen })));
+const BackupScreen = lazy(() => import('./screens/SettingsScreens').then((m) => ({ default: m.BackupScreen })));
+const ReviewScreen = lazy(() => import('./screens/ReviewScreen').then((m) => ({ default: m.ReviewScreen })));
+const TestsScreen = lazy(() => import('./screens/TestScreens').then((m) => ({ default: m.TestsScreen })));
+const TestWizard = lazy(() => import('./screens/TestScreens').then((m) => ({ default: m.TestWizard })));
+
+/** R-UI-3: theme on <html>, plus the status-bar colour. */
+function useTheme(theme: 'auto' | 'light' | 'dark' | undefined) {
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!theme || theme === 'auto') delete root.dataset.theme;
+    else root.dataset.theme = theme;
+    const dark = theme === 'dark' || (theme !== 'light' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#17602d' : '#1f7a3a');
+  }, [theme]);
+}
 
 const TABS = [
   { id: '', label: 'היום', icon: 'ball' },
@@ -82,6 +109,8 @@ function screenFor(r: string[]): ReactNode {
       return <MoreScreen />;
     case 'settings':
       return <SettingsScreen />;
+    case 'intro':
+      return <IntroScreen onClose={() => back('/more')} />;
     case 'backup':
       return <BackupScreen />;
     default:
@@ -93,7 +122,9 @@ export function App() {
   const [ready, setReady] = useState(false);
   const route = useRoute();
   const today = useToday();
+  const settings = useSettings();
   const lastDay = useRef('');
+  useTheme(settings?.theme);
 
   useEffect(() => {
     void (async () => {
@@ -101,6 +132,7 @@ export function App() {
       setReady(true);
       void requestPersistentStorage();
     })();
+    return installAudioUnlock();
   }, []);
 
   // R-GAM-1: this week's and next week's game exist (again when the date changes).
@@ -108,9 +140,12 @@ export function App() {
     if (!ready || lastDay.current === today) return;
     lastDay.current = today;
     void getSettings().then((s) => ensureGames(today, s));
+    void dropStaleRun(today);
   }, [ready, today]);
 
-  if (!ready) return null;
+  if (!ready || !settings) return null;
+  // R-ONB: a new user (or after "delete everything") sees the intro and setup first.
+  if (!settings.onboardedAt) return <ToastProvider><Onboarding s={settings} /></ToastProvider>;
   const top = route[0] ?? '';
   const main = MAIN.has(top) && route.length <= 2;
   const active = OWNER[top] ?? top;
@@ -118,7 +153,7 @@ export function App() {
     <ToastProvider>
       <div className="app">
         <UpdateBanner />
-        {screenFor(route)}
+        <Suspense fallback={<div className="screen" />}>{screenFor(route)}</Suspense>
         {main && (
           <nav className="nav" aria-label="ניווט ראשי">
             {TABS.map((t) => (
@@ -157,10 +192,10 @@ function UpdateBanner() {
       <span className="grow">
         <b>גרסה חדשה זמינה</b> · הנתונים שלך לא ייפגעו
       </span>
-      <button type="button" className="btn sm" style={{ background: '#fff', color: 'var(--g2)' }} onClick={() => void updateServiceWorker(true)}>
+      <button type="button" className="btn sm" style={{ background: 'var(--surface)', color: 'var(--g2)' }} onClick={() => void updateServiceWorker(true)}>
         עדכן
       </button>
-      <button type="button" aria-label="סגור" onClick={() => setNeedRefresh(false)} style={{ color: '#fff' }}>
+      <button type="button" aria-label="סגור" onClick={() => setNeedRefresh(false)} style={{ color: 'var(--on-accent)' }}>
         <Icon name="x" size="sm" />
       </button>
     </div>

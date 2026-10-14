@@ -2,7 +2,7 @@
 import { db } from '../db/db';
 import { addDaysISO, type ISODate } from '../domain/dates';
 import { trendWeight } from '../domain/body';
-import { autoGoal, bmr, dayTargets, dayTypeFor, kosherCheck, maintenanceKcal, type DayTargets, type DayType, type EatenAt, type GoalMode, type Kosher, type KosherStatus } from '../domain/nutrition';
+import { adaptiveMaintenance, adaptiveWorthShowing, autoGoal, bmr, dayTargets, dayTypeFor, kosherCheck, maintenanceKcal, totalsByDate, type AdaptiveResult, type DayTargets, type DayType, type EatenAt, type GoalMode, type Kosher, type KosherStatus } from '../domain/nutrition';
 import type { FoodLog, Game, Settings } from '../domain/schemas';
 import { bodySummary } from './queries';
 import { planWith, resolveWorkout } from './plan';
@@ -26,6 +26,9 @@ export interface FoodDay {
   bodyFat: number | null;
   weight: number | null;
   maintenance: number | null;
+  /** the formula value, and where `maintenance` came from (R-NUT-1a) */
+  formula: number | null;
+  source: 'formula' | 'override';
   targets: DayTargets | null;
   /** what's missing in the profile to compute targets */
   missing: string[];
@@ -46,9 +49,10 @@ export function foodDay(date: ISODate, ctx: FoodContext): FoodDay {
   const age = s.birthYear ? Number(date.slice(0, 4)) - s.birthYear : null;
   const mode: GoalMode = s.goalMode === 'auto' ? autoGoal(ctx.bodyFat) : s.goalMode;
   const missing = [!weight && 'משקל', !s.heightCm && 'גובה', !age && 'שנת לידה'].filter((x): x is string => !!x);
-  if (!weight || !s.heightCm || !age) return { dayType, mode, bodyFat: ctx.bodyFat, weight, maintenance: null, targets: null, missing, game };
-  const maintenance = maintenanceKcal(bmr(s.sex, weight, s.heightCm, age), s.activity);
-  return { dayType, mode, bodyFat: ctx.bodyFat, weight, maintenance, targets: dayTargets({ weightKg: weight, maintenance, mode, deficit: s.deficit, dayType }), missing, game };
+  if (!weight || !s.heightCm || !age) return { dayType, mode, bodyFat: ctx.bodyFat, weight, maintenance: null, formula: null, source: 'formula', targets: null, missing, game };
+  const formula = maintenanceKcal(bmr(s.sex, weight, s.heightCm, age), s.activity);
+  const maintenance = s.maintenanceOverride?.kcal ?? formula;
+  return { dayType, mode, bodyFat: ctx.bodyFat, weight, maintenance, formula, source: s.maintenanceOverride ? 'override' : 'formula', targets: dayTargets({ weightKg: weight, maintenance, mode, deficit: s.deficit, dayType }), missing, game };
 }
 
 const toMin = (hm: string) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5));
@@ -67,4 +71,14 @@ export function dairyFrom(logs: Pick<FoodLog, 'time' | 'kosher'>[], waitMin: num
   const m = Math.max(...meat) + waitMin;
   const d = m % (24 * 60);
   return { minute: m, hm: `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}` };
+}
+
+/** R-NUT-1a: the 14-day estimate ending yesterday, and whether to offer it. */
+export async function adaptiveEstimate(day: FoodDay, weighIns: { date: ISODate; weight: number }[], today: ISODate): Promise<{ result: AdaptiveResult; offer: boolean } | null> {
+  if (day.formula == null || day.maintenance == null) return null;
+  const end = addDaysISO(today, -1);
+  const logs = await db.foodLogs.where('date').between(addDaysISO(today, -14), end, true, true).toArray();
+  const intake = [...totalsByDate(logs).entries()].map(([date, m]) => ({ date, kcal: m.kcal }));
+  const result = adaptiveMaintenance({ intake, weighIns, end, formula: day.formula });
+  return { result, offer: result.ok && adaptiveWorthShowing(result.kcal, day.maintenance) };
 }

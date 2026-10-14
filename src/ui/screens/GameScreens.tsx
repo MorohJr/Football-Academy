@@ -121,7 +121,7 @@ export function GameScreen({ id }: { id: string }) {
     if (played) {
       const existing = await db.sessions.where('gameId').equals(v.id).first();
       const t = now();
-      const row = { date: v.date, kind: 'game' as const, workoutId: null, addOn: null, title: 'משחק', minutes: v.minutes!, rpe: v.rpe, sets: {}, gameId: v.id };
+      const row = { date: v.date, kind: 'game' as const, workoutId: null, addOn: null, title: 'משחק', minutes: v.minutes!, rpe: v.rpe, sets: {}, loads: {}, gameId: v.id };
       if (existing) await db.sessions.update(existing.id, { ...row, updatedAt: t });
       else await db.sessions.add({ id: uid(), createdAt: t, updatedAt: t, ...row });
     }
@@ -289,7 +289,7 @@ export function GameModeScreen({ id }: { id: string }) {
       {items.map((it) => (
         <div key={it.id} className="card" style={{ opacity: g.checklist[it.id] ? 0.55 : 1 }}>
           <div className="row" style={{ alignItems: 'flex-start' }}>
-            <button type="button" aria-label="בוצע" onClick={() => toggle(it.id)} style={{ width: 24, height: 24, borderRadius: 7, border: '2px solid var(--g1)', background: g.checklist[it.id] ? 'var(--g1)' : '#fff', color: '#fff', flex: 'none' }}>
+            <button type="button" aria-label="בוצע" onClick={() => toggle(it.id)} style={{ width: 24, height: 24, borderRadius: 7, border: '2px solid var(--g1)', background: g.checklist[it.id] ? 'var(--g1)' : 'var(--surface)', color: 'var(--on-accent)', flex: 'none' }}>
               {g.checklist[it.id] ? '✓' : ''}
             </button>
             <div className="grow">

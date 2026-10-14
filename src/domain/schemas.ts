@@ -9,6 +9,9 @@ const MacrosZ = { kcal: z.number(), protein: z.number(), carbs: z.number(), fat:
 
 export const SETTINGS_ID = 'settings';
 
+export const SetLoadZ = z.object({ kg: z.number().min(0).nullable(), reps: z.int().min(0).nullable() });
+export type SetLoad = z.infer<typeof SetLoadZ>;
+
 export const SeasonBlockZ = z.object({
   programme: z.enum(['stamina', 'speed', 'inseason', 'rest', 'preseason', 'bodyweight']),
   startMonth: z.int().min(1).max(12),
@@ -35,6 +38,14 @@ export const Settings = z.object({
   weakFoot: z.boolean().default(true),
   lastBackupAt: z.string().nullable().default(null),
   demo: z.boolean().default(false),
+  /** R-ONB: null = show the intro and setup (new user, or after "delete everything"). */
+  onboardedAt: z.string().nullable().default(null),
+  /** R-UI-3 */
+  theme: z.enum(['auto', 'light', 'dark']).default('auto'),
+  /** R-DLD: Sundays of deload weeks */
+  deloadWeeks: z.array(Iso).default([]),
+  /** R-NUT-1a: maintenance accepted from the 14-day estimate (null = formula) */
+  maintenanceOverride: z.object({ kcal: z.number().positive(), date: Iso }).nullable().default(null),
 });
 export type Settings = z.infer<typeof Settings>;
 
@@ -51,11 +62,13 @@ export const SessionLog = z.object({
   rpe: z.number().min(0).max(10).nullable(),
   /** set checkboxes from workout mode: "blockIdx.exIdx" → sets done */
   sets: z.record(z.string(), z.int()).default({}),
+  /** R-PRG-1: exercise name → kg/reps of each set done (kg null = bodyweight) */
+  loads: z.record(z.string(), z.array(SetLoadZ)).default({}),
   gameId: z.string().nullable().default(null),
 });
 export type SessionLog = z.infer<typeof SessionLog>;
 
-/** Morning check-in: POMS + sleep (R-TRK, R-SLP). id = date. */
+/** Morning check-in: wellness score (R-WEL; fields keep the sheet's "POMS" naming) + sleep (R-TRK, R-SLP). id = date. */
 export const Checkin = z.object({
   ...Base,
   date: Iso,
@@ -199,3 +212,18 @@ export type WeekReview = z.infer<typeof WeekReview>;
 
 export const LessonLog = z.object({ ...Base, date: Iso, lessonId: z.string() });
 export type LessonLog = z.infer<typeof LessonLog>;
+
+/** R-WRK-2: the workout in progress, saved on every change so it survives iOS closing the app. Single row, id 'active'. */
+export const ActiveRun = z.object({
+  id: z.literal('active'),
+  workoutId: z.string(),
+  date: Iso,
+  /** epoch ms */
+  startedAt: z.number(),
+  updatedAt: z.string(),
+  sets: z.record(z.string(), z.int()).default({}),
+  loads: z.record(z.string(), z.array(SetLoadZ)).default({}),
+  /** rest timer: end (ms) or null for "full recovery" (count up), since = start (ms) */
+  rest: z.object({ until: z.number().nullable(), since: z.number(), label: z.string() }).nullable().default(null),
+});
+export type ActiveRun = z.infer<typeof ActiveRun>;

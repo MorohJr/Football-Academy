@@ -86,7 +86,7 @@ function ReviewForm({ ws, data }: { ws: string; data: ReviewData }) {
         {tile(data.acwr.ratio != null ? data.acwr.ratio.toFixed(2) : null, 'עומס (ACWR)', data.acwr.zone === 'high' ? 'r' : 'l')}
       </div>
       <div className="tiles mt">
-        {tile(data.poms, 'POMS ממוצע', 'w')}
+        {tile(data.poms, 'מדד רווחה ממוצע', 'w')}
         {tile(data.sleep, 'שעות שינה', data.sleep != null && data.sleep < 8 ? 'y' : 'w')}
         {tile(data.lastGame ? `${data.lastGame.minutes ?? '—'}′` : null, data.lastGame ? `${data.lastGame.goals} ש׳ · ציון ${data.lastGame.rating ?? '—'}` : 'משחק', 'w')}
       </div>

@@ -4,6 +4,7 @@ import { PRESEASON_DAYS, PRESEASON_LENGTH } from '../content/preseason';
 import { inseasonWeekTemplate } from '../content/inseason';
 import { speedWeek, staminaWeek, bodyweightWeek } from '../content/boosters';
 import { addDaysISO, diffDays, weekday, type ISODate } from './dates';
+import { isDeloadWeek } from './deload';
 
 export interface SeasonBlock {
   programme: ProgrammeId;
@@ -116,6 +117,8 @@ export interface DayPlanResult {
   replaced?: PlannedSession[];
   /** offset from the weekly game day (in-season), -5..+1 */
   offset?: number;
+  /** R-DLD: half the sets this week */
+  deload?: boolean;
 }
 
 export interface GameRef {
@@ -132,6 +135,8 @@ export interface PlanOptions {
   games?: GameRef[];
   pushCore?: boolean;
   weakFoot?: boolean;
+  /** R-DLD: Sundays of deload weeks */
+  deloadWeeks?: readonly ISODate[];
 }
 
 const DEFAULT_GAME_DAY = 4;
@@ -281,7 +286,7 @@ export function planFor(date: ISODate, calendar: SeasonBlock[] = DEFAULT_CALENDA
   const gameDay = opts.gameDay ?? DEFAULT_GAME_DAY;
   const base = basePlan(date, calendar, gameDay);
   const extras = addOns(base, date, gameDay, opts);
-  const plan: DayPlanResult = { ...base, items: [...base.items, ...extras], rest: base.rest && extras.length === 0 };
+  const plan: DayPlanResult = { ...base, items: [...base.items, ...extras], rest: base.rest && extras.length === 0, deload: isDeloadWeek(date, opts.deloadWeeks ?? []) };
 
   const games = opts.games;
   let hasGame: boolean;

@@ -121,7 +121,7 @@ export interface Acwr {
 
 /**
  * R-TRK-4: acute:chronic workload (Bible, "Key principles of pre-season training", Gabbett).
- * acute = this week's units, chronic = average of the previous 4 weeks. ratio ≥ 1.4 → injury risk rises sharply.
+ * acute = this week's units, chronic = average of the previous 4 weeks. ratio ≥ 1.4 → load jumped fast, slow down (SPEC 15.12: a signal, not an injury prediction).
  * Needs 4 previous weeks with any data; otherwise unknown.
  */
 export function acwr(weeks: WeekSummary[], currentWeekStart: ISODate): Acwr {
@@ -149,4 +149,13 @@ export function macroTargets(weightKg: number, trainingDay: boolean) {
   const protein = Math.round(weightKg * 1.8);
   const [cLo, cHi] = trainingDay ? [7, 10] : [5, 7];
   return { protein, carbs: [Math.round(weightKg * cLo), Math.round(weightKg * cHi)] as const, fatPct: [20, 25] as const };
+}
+
+/** R-SLP: sleep hours from lights-out and wake (crossing midnight), + nap. */
+export function sleepHours(c: { lightsOut: string | null; wake: string | null; napMin?: number | null }): number | null {
+  if (!c.lightsOut || !c.wake) return null;
+  const a = Number(c.lightsOut.slice(0, 2)) * 60 + Number(c.lightsOut.slice(3));
+  const b = Number(c.wake.slice(0, 2)) * 60 + Number(c.wake.slice(3));
+  const mins = (b - a + 24 * 60) % (24 * 60);
+  return Math.round(((mins + (c.napMin ?? 0)) / 60) * 10) / 10;
 }
