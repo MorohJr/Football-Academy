@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { db } from '../../db/db';
 import { CHART_INSIGHTS, FITNESS_TESTS, TRACKING_VIDEO } from '../../content/tracking';
-import { addDaysISO, monthKey, weekStart, type ISODate } from '../../domain/dates';
-import { acwr, dailyLoads, monthlySummaries, weeklySummaries } from '../../domain/tracking';
-import { totalsByDate } from '../../domain/nutrition';
+import { addDaysISO, weekStart } from '../../domain/dates';
+import { monthlySummaries } from '../../domain/tracking';
+import { dailyRows, monthlyRows, weeklyRows } from '../../domain/trackSeries';
+import { e1rmSeries, historyOf, loggedExercises, type SetLoad } from '../../domain/progression';
 import { navyBodyFatMale } from '../../domain/body';
-import { toPoms, toTrackSessions, sleepHours } from '../../services/queries';
+import { toPoms, toTrackSessions } from '../../services/queries';
 import { fmtDate, Page, Seg, Tabs, VideoLinks } from '../components/common';
 import { Chart, ChartBox } from '../components/charts';
 import { useLive, useSettings, useToday } from '../hooks';
@@ -40,37 +41,11 @@ export function TrackScreen({ tab: tab0 }: { tab?: string }) {
   }, [from, today]);
   if (!data || !s) return null;
 
-  const days: ISODate[] = [];
-  for (let d = from; d <= today; d = addDaysISO(d, 1)) days.push(d);
-  const loads = dailyLoads(toTrackSessions(data.sessions));
-  const checkByDate = new Map(data.checkins.map((c) => [c.date, c]));
-  const foodByDate = totalsByDate(data.food.map((f) => ({ ...f })));
-  const daily = days.map((d) => {
-    const l = loads.get(d);
-    const c = checkByDate.get(d);
-    const f = foodByDate.get(d);
-    return {
-      d: fmtDate(d),
-      rpe: l && l.rpeTotal > 0 ? l.rpeTotal : null,
-      minutes: l?.minutes || null,
-      units: l?.units || null,
-      sleep: c?.sleep ?? null,
-      lookingForward: c?.lookingForward ?? null,
-      vigorous: c?.vigorous ?? null,
-      soreness: c?.soreness ?? null,
-      appetite: c?.appetite ?? null,
-      sleepH: c ? sleepHours(c) : null,
-      rpeAvg: l?.rpeAvg ?? null,
-      kcal: f ? Math.round(f.kcal) : null,
-      protein: f ? Math.round(f.protein) : null,
-      carbs: f ? Math.round(f.carbs) : null,
-      fat: f ? Math.round(f.fat) : null,
-    };
-  });
-  const weeks = weeklySummaries(toTrackSessions(data.sessions), toPoms(data.checkins)).filter((w) => w.weekStart >= weekStart(from));
-  const weekly = weeks.map((w) => ({ w: fmtDate(w.weekStart), minutes: w.minutes || null, rpe: w.rpe || null, units: w.units || null, poms: w.poms, acwr: acwr(weeklySummaries(toTrackSessions(data.sessions), toPoms(data.checkins)), w.weekStart).ratio }));
-  const months = monthlySummaries(toTrackSessions(data.allSessions), toPoms(data.allCheckins)).filter((m) => m.month >= monthKey(from));
-  const monthly = months.map((m) => ({ m: `${m.month.slice(5)}/${m.month.slice(2, 4)}`, units: m.units || null, poms: m.poms }));
+  const tSessions = toTrackSessions(data.sessions);
+  const tPoms = toPoms(data.checkins);
+  const daily = dailyRows(from, today, tSessions, data.checkins, data.food);
+  const weekly = weeklyRows(from, tSessions, tPoms);
+  const monthly = monthlyRows(from, toTrackSessions(data.allSessions), toPoms(data.allCheckins));
 
   return (
     <Page title="מעקב" kicker="True Tracking System · כל הגרפים של הגיליון" sub="נמלא אוטומטית מהאימונים, הצ'ק-אין והתזונה">
@@ -138,8 +113,8 @@ export function TrackScreen({ tab: tab0 }: { tab?: string }) {
           <ChartBox title="6 · התיאבון מצוין">
             <Chart data={daily} x="d" series={[{ key: 'appetite', label: 'תיאבון', type: 'line', color: C.b }]} yDomain={[0, 5]} />
           </ChartBox>
-          <ChartBox title="11 · דקות שבועיות מול POMS שבועי" insight={CHART_INSIGHTS['minutes-vs-poms-weekly']} legend={[{ label: 'דקות', color: C.g }, { label: 'POMS', color: C.p }]}>
-            <Chart data={weekly} x="w" series={[{ key: 'minutes', label: 'דקות', type: 'bar' }, { key: 'poms', label: 'POMS', type: 'line', color: C.p, right: true }]} />
+          <ChartBox title="11 · דקות שבועיות מול מדד הרווחה השבועי" insight={CHART_INSIGHTS['minutes-vs-poms-weekly']} legend={[{ label: 'דקות', color: C.g }, { label: 'מדד רווחה', color: C.p }]}>
+            <Chart data={weekly} x="w" series={[{ key: 'minutes', label: 'דקות', type: 'bar' }, { key: 'poms', label: 'מדד רווחה', type: 'line', color: C.p, right: true }]} />
           </ChartBox>
         </>
       )}
@@ -161,6 +136,7 @@ export function TrackScreen({ tab: tab0 }: { tab?: string }) {
         </>
       )}
       {tab === 'body' && <BodyCharts body={data.body} from={from} heightCm={s.heightCm} />}
+      {tab === 'tests' && <StrengthChart sessions={data.allSessions} />}
       {tab === 'tests' && <YearlyTracker tests={data.tests} sessionsMonthly={monthlySummaries(toTrackSessions(data.allSessions), toPoms(data.allCheckins))} today={today} />}
       <VideoLinks videos={[TRACKING_VIDEO]} />
     </Page>
@@ -186,6 +162,30 @@ function BodyCharts({ body, from, heightCm }: { body: { date: string; weight: nu
         <Chart data={rows} x="d" series={[{ key: 'waist', label: 'מותניים', type: 'line', color: '#2a6fb5' }]} />
       </ChartBox>
     </>
+  );
+}
+
+/** R-PRG-6, chart 21: estimated 1RM per session for one exercise. */
+function StrengthChart({ sessions }: { sessions: { date: string; loads?: Record<string, SetLoad[]> }[] }) {
+  const names = loggedExercises(sessions);
+  const [pick, setPick] = useState<string | null>(null);
+  const name = pick && names.includes(pick) ? pick : (names[0] ?? null);
+  const rows = name ? e1rmSeries(historyOf(name, sessions)).map((p) => ({ d: fmtDate(p.date), e1rm: p.e1rm })) : [];
+  return (
+    <ChartBox title="21 · כוח לאורך זמן (1RM משוער)" insight="מחושב מכל סט שנרשם במצב אימון (Epley, עד 12 חזרות). קו שעולה = מתחזקים (R-PRG).">
+      {names.length ? (
+        <div style={{ padding: '0 8px 6px' }}>
+          <select className="input ltr" value={name ?? ''} onChange={(e) => setPick(e.target.value)} aria-label="תרגיל">
+            {names.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+      {names.length ? <Chart data={rows} x="d" series={[{ key: 'e1rm', label: '1RM משוער (ק"ג)', type: 'line' }]} /> : <div className="empty">עוד אין משקלים. רושמים ק"ג וחזרות לכל סט במצב אימון, ופה רואים את ההתקדמות.</div>}
+    </ChartBox>
   );
 }
 
@@ -232,7 +232,7 @@ function YearlyTracker({ tests, sessionsMonthly, today }: { tests: { date: strin
             ))}
           </tr>
           <tr style={{ borderTop: '1px solid var(--line)' }}>
-            <td style={{ padding: 4 }}>POMS חודשי</td>
+            <td style={{ padding: 4 }}>מדד רווחה חודשי</td>
             {months.map((m) => (
               <td key={m} className="center num" style={{ padding: 4 }}>
                 {sessionsMonthly.find((x) => x.month === m)?.poms ?? ''}

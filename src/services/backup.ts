@@ -23,6 +23,7 @@ const ROW_SCHEMAS: Record<TableName, z.ZodType> = {
   niggles: S.Niggle,
   reviews: S.WeekReview,
   lessons: S.LessonLog,
+  runs: S.ActiveRun,
 };
 
 type BackupData = Partial<Record<string, unknown[]>>;
@@ -58,7 +59,18 @@ export async function markBackupDone(): Promise<void> {
 }
 
 /** Migrations of backup data, keyed by the version they migrate FROM (n → n+1). Add a step for every Dexie version bump. */
-export const MIGRATIONS: Record<number, (data: BackupData) => BackupData> = {};
+export const MIGRATIONS: Record<number, (data: BackupData) => BackupData> = {
+  // v1 → v2 (SPEC 0.8): a v1 backup comes from someone who already used the app, so no onboarding after restoring it.
+  // The other new fields get their Zod defaults when the rows are parsed.
+  1: (data) => ({
+    ...data,
+    settings: (data.settings ?? []).map((row) => {
+      const r = row as Record<string, unknown>;
+      return { ...r, onboardedAt: r.onboardedAt ?? r.updatedAt ?? new Date().toISOString() };
+    }),
+    runs: [],
+  }),
+};
 
 function migrate(data: BackupData, fromVersion: number): BackupData {
   let cur = data;

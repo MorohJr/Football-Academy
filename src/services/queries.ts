@@ -11,14 +11,7 @@ export const toPoms = (c: Checkin[]): PomsLog[] =>
 
 export const pomsOf = (c: Checkin) => c.sleep + c.lookingForward + c.vigorous + c.soreness + c.appetite;
 
-/** Sleep hours from lights-out and wake (crossing midnight), + nap. */
-export function sleepHours(c: Pick<Checkin, 'lightsOut' | 'wake' | 'napMin'>): number | null {
-  if (!c.lightsOut || !c.wake) return null;
-  const a = Number(c.lightsOut.slice(0, 2)) * 60 + Number(c.lightsOut.slice(3));
-  const b = Number(c.wake.slice(0, 2)) * 60 + Number(c.wake.slice(3));
-  const mins = (b - a + 24 * 60) % (24 * 60);
-  return Math.round(((mins + (c.napMin ?? 0)) / 60) * 10) / 10;
-}
+export { sleepHours } from '../domain/tracking';
 
 export async function loadStatus(today: ISODate) {
   const from = addDaysISO(weekStart(today), -35);

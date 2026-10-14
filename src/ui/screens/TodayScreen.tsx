@@ -4,6 +4,11 @@ import type { Workout } from '../../content/types';
 import { addDaysISO, diffDays, weekday, weekStart } from '../../domain/dates';
 import { PROGRAMME_HE, PROGRAMME_SHORT, yearBlocks, type DayPlanResult } from '../../domain/season';
 import { BODY_FAT_TARGET } from '../../domain/body';
+import { heatToday } from '../../domain/heat';
+import { dayStripLabel, greeting, heavyLegs, loadTileTone, orderByDone, seasonStats, yearBarPosition } from '../../domain/today';
+import { getWorkout } from '../../content';
+import { clearRun, getActiveRun } from '../../services/runs';
+import { HeatCard } from '../components/HeatCard';
 import { gamesAround, lastPlayedGame, nextGame, planWith, pushCoreContext, resolveItems, type ResolvedItem } from '../../services/plan';
 import { bodySummary, loadStatus, pomsOf, sleepHours } from '../../services/queries';
 import { logSession } from '../../services/sessions';
@@ -16,11 +21,8 @@ import { go } from '../router';
 import { AREA_HE, rehabFor } from './body-areas';
 
 const PROG_COLOR: Record<string, string> = { inseason: '#1f7a3a', stamina: '#2a6fb5', speed: '#145a29', rest: '#9aa59d', preseason: '#145a29', bodyweight: '#7a4bb3' };
-
-function greet() {
-  const h = new Date().getHours();
-  return h < 12 ? 'בוקר טוב' : h < 17 ? 'צהריים טובים' : h < 21 ? 'ערב טוב' : 'לילה טוב';
-}
+const TILE_CLASS = { high: 'r', ok: 'l', neutral: 'n' } as const;
+const categoryOf = (id: string) => getWorkout(id)?.category;
 
 export function TodayScreen() {
   const today = useToday();
@@ -54,22 +56,24 @@ export function TodayScreen() {
     const body = await bodySummary(today);
     const niggles = (await db.niggles.toArray()).filter((n) => !n.closed);
     const review = weekday(today) === 0 ? await db.reviews.where('week').equals(today).first() : null;
-    return { plan, items, sessions, week, yesterday, checkinToday, load, ng, lg, lgAnalysis, season, pitches, body, niggles, pc, review };
+    const run = await getActiveRun();
+    return { plan, items, sessions, week, yesterday, checkinToday, load, ng, lg, lgAnalysis, season, pitches, body, niggles, pc, review, run };
   }, [s, today]);
 
   if (!s || !data) return null;
   const { plan, items, sessions, week, checkinToday, load, ng, lg, season, pitches, body, niggles, pc } = data;
   const doneIds = new Set(sessions.map((x) => x.workoutId));
   const trainItems = items.filter((i) => i.item.kind !== 'game');
-  const todo = trainItems.filter((i) => !doneIds.has(i.workout?.id ?? ''));
-  const done = trainItems.filter((i) => doneIds.has(i.workout?.id ?? ''));
-  const ordered = [...todo, ...done];
+  const { ordered, done } = orderByDone(trainItems, (i) => doneIds.has(i.workout?.id ?? ''));
   const totalMin = trainItems.reduce((a, i) => a + (i.workout?.durationMin ?? 0), 0);
   const pitchName = (id: string | null) => pitches.find((p) => p.id === id)?.name;
   const gameToday = items.some((i) => i.item.kind === 'game');
-  const heavyYesterday = gameToday && data.yesterday.items.some((i) => /in-lower|pre-max|pre-se|pre-ss/.test(i.workoutId ?? ''));
+  const heavyYesterday = gameToday && heavyLegs(data.yesterday);
   const blocks = yearBlocks(today, s.calendar);
   const yearDays = blocks.reduce((a, b) => a + b.lengthDays, 0);
+  const stats = seasonStats(season);
+  const heat = heatToday(today, plan.period, s.gameWeekday, gameToday || trainItems.some((i) => i.workout?.location === 'pitch'));
+  const runWorkout = data.run ? getWorkout(data.run.workoutId) : undefined;
 
   const saveFinish = async (minutes: number, rpe: number | null) => {
     if (!finish?.workout) return;
@@ -85,7 +89,7 @@ export function TodayScreen() {
         <div className="k">
           {PROGRAMME_HE[plan.period.programme]} · {plan.label} · {DAYS_HE[weekday(today)]} {fmtDate(today)}
         </div>
-        <h1>{greet()}, {s.name}</h1>
+        <h1>{greeting(new Date().getHours())}, {s.name}</h1>
         <div className="acts">
           <button type="button" aria-label="הגדרות" onClick={() => go('/settings')}>
             <Icon name="settings" size="sm" />
@@ -93,6 +97,23 @@ export function TodayScreen() {
         </div>
       </header>
       <main className="sheet">
+        {data.run && (
+          <div className="card white">
+            <div className="ch">
+              יש אימון פתוח <span className="ltr">{new Date(data.run.startedAt).toTimeString().slice(0, 5)}</span>
+            </div>
+            <div className="small mb">{runWorkout?.subtitle?.split(' · ')[0] ?? runWorkout?.title ?? data.run.workoutId} · {Object.values(data.run.sets).reduce((a, b) => a + b, 0)} סטים נשמרו</div>
+            <div className="row">
+              <button type="button" className="btn sm grow" onClick={() => go(`/run/${data.run!.workoutId}`)}>
+                ▶ המשך
+              </button>
+              <button type="button" className="btn ghost sm" onClick={() => void clearRun()}>
+                מחק
+              </button>
+            </div>
+          </div>
+        )}
+
         {data.review === undefined && (
           <div className="card mint tap" onClick={() => go('/review')}>
             <div className="row">
@@ -120,14 +141,17 @@ export function TodayScreen() {
           </div>
         )}
 
+        {heat && <HeatCard acclim={heat.acclim} />}
+
         {heavyYesterday && <div className="warnbox">אתמול היו רגליים כבדות: חימום ארוך ושגרת לפני משחק מלאה (R-GAM-5).</div>}
         {load.acwr.zone === 'high' && (
           <div className="warnbox">
             עומס חריג: השבוע {load.acwr.acute} יחידות, פי {load.acwr.ratio} מהממוצע של 4 השבועות הקודמים (מעל 1.4 הסיכון לפציעה עולה). אפשר להוריד סטים/חזרות/משקל, או להחליף אימון במניעת פציעות או התאוששות פעילה.
-            {load.pomsDrop && ' גם מצב הבוקר ירד השבוע: כדאי לתכנן מנוחה.'}
+            {load.pomsDrop && ' גם מדד הרווחה ירד השבוע: כדאי לתכנן מנוחה.'}
           </div>
         )}
 
+        {plan.deload && <div className="okbox">שבוע הורדת עומס: חצי מהסטים, אותו משקל (R-DLD).</div>}
         <HRow title={gameToday ? 'היום · יום משחק' : plan.rest ? 'היום · מנוחה' : `היום · ${trainItems.length} אימונים`} meta={trainItems.length ? `כ-${totalMin} דק' · ${done.length} מתוך ${trainItems.length}` : plan.transition ? plan.label : undefined} />
 
         {gameToday && (
@@ -179,13 +203,13 @@ export function TodayScreen() {
         <div className="tiles mt">
           <button type="button" className="tile" style={{ textAlign: 'start' }} onClick={() => setCheckin(true)}>
             <b className="num">{checkinToday ? `${pomsOf(checkinToday)}/25` : '—'}</b>
-            <span>{checkinToday ? 'מצב בוקר' : 'צ\'ק-אין בוקר'}</span>
+            <span>{checkinToday ? 'מדד רווחה' : 'צ\'ק-אין בוקר'}</span>
           </button>
           <button type="button" className="tile l" style={{ textAlign: 'start' }} onClick={() => setCheckin(true)}>
             <b className="num ltr" style={{ textAlign: 'start' }}>{checkinToday ? sleepHours(checkinToday) ?? '—' : '—'}</b>
             <span>שינה {checkinToday?.lightsOut ? `(${checkinToday.lightsOut})` : ''}</span>
           </button>
-          <button type="button" className={`tile ${load.acwr.zone === 'high' ? 'r' : 'y'}`} style={{ textAlign: 'start' }} onClick={() => go('/track')}>
+          <button type="button" className={`tile ${TILE_CLASS[loadTileTone(load.acwr)]}`} style={{ textAlign: 'start' }} onClick={() => go('/track')}>
             <b className="num">{load.acwr.ratio ?? load.weekUnits}</b>
             <span>{load.acwr.ratio != null ? 'עומס (ACWR)' : 'יחידות השבוע'}</span>
           </button>
@@ -207,8 +231,8 @@ export function TodayScreen() {
             <div className="kv mt">
               <span>העונה</span>
               <span>
-                {season.length} משחקים · {season.reduce((a, g) => a + g.goals, 0)} שערים · {season.reduce((a, g) => a + g.assists, 0)} בישולים
-                {season.some((g) => g.rating) ? ` · ציון ${(season.filter((g) => g.rating).reduce((a, g) => a + g.rating!, 0) / season.filter((g) => g.rating).length).toFixed(1)}` : ''}
+                {stats.games} משחקים · {stats.goals} שערים · {stats.assists} בישולים
+                {stats.rating != null ? ` · ציון ${stats.rating.toFixed(1)}` : ''}
               </span>
             </div>
             {data.lgAnalysis === 0 && (
@@ -245,7 +269,7 @@ export function TodayScreen() {
           {niggles.map((n) => {
             const vids = rehabFor(n.area);
             return (
-              <div key={n.id} className="row mt" style={{ background: '#fff', borderRadius: 12, padding: 8 }} onClick={(e) => e.stopPropagation()}>
+              <div key={n.id} className="row mt" style={{ background: 'var(--surface)', borderRadius: 12, padding: 8 }} onClick={(e) => e.stopPropagation()}>
                 <Icon name="bandage" />
                 <div className="grow">
                   <div className="b small">
@@ -263,10 +287,9 @@ export function TodayScreen() {
           {week.map((d) => {
             const isToday = d.date === today;
             const game = d.plan.items.some((i) => i.kind === 'game');
-            const first = d.plan.items.find((i) => i.kind === 'session');
-            const lbl = game ? '⚽' : d.plan.rest ? '–' : (first?.workoutId ?? '').replace(/^(in|pre|spd|sta)-/, '').slice(0, 2).toUpperCase() || '•';
+            const lbl = dayStripLabel(d.plan, categoryOf);
             return (
-              <div key={d.date} className={isToday ? 'now' : game ? 'gm' : d.done ? 'done' : ''} onClick={() => go(`/day/${d.date}`)}>
+              <div key={d.date} role="button" tabIndex={0} aria-label={`${DAYS_HE[weekday(d.date)]}: ${lbl}`} className={isToday ? 'now' : game ? 'gm' : d.done ? 'done' : ''} onClick={() => go(`/day/${d.date}`)} onKeyDown={(e) => e.key === 'Enter' && go(`/day/${d.date}`)}>
                 <span>{DAYS_SHORT[weekday(d.date)]}</span>
                 <b>{d.done && !isToday ? '✓' : lbl}</b>
               </div>
@@ -282,7 +305,7 @@ export function TodayScreen() {
           ))}
         </div>
         <div style={{ position: 'relative', height: 18 }}>
-          <div style={{ position: 'absolute', insetInlineStart: `${Math.max(0, Math.min(92, (diffDays(today, blocks[0]!.start) / yearDays) * 100))}%`, top: 2, fontSize: 10, color: 'var(--g2)', fontWeight: 700 }}>▲ אתה כאן</div>
+          <div style={{ position: 'absolute', insetInlineStart: `${yearBarPosition(diffDays(today, blocks[0]!.start), yearDays)}%`, top: 2, fontSize: 10, color: 'var(--g2)', fontWeight: 700 }}>▲ אתה כאן</div>
         </div>
       </main>
       <CheckinModal key={checkinToday?.id ?? 'new'} open={checkin} onClose={() => setCheckin(false)} date={today} existing={checkinToday} />
@@ -348,7 +371,7 @@ function Spark({ points }: { points: number[] }) {
   const pts = points.map((p, i) => `${(i / (points.length - 1)) * 120},${36 - ((p - min) / span) * 30}`).join(' ');
   return (
     <svg viewBox="0 0 120 40" className="grow" style={{ height: 38 }} aria-hidden="true">
-      <polyline points={pts} fill="none" stroke="#1f7a3a" strokeWidth="2.5" />
+      <polyline points={pts} fill="none" stroke="var(--g2)" strokeWidth="2.5" />
     </svg>
   );
 }

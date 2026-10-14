@@ -4,21 +4,23 @@ import { INJURY_CAUSES, INJURY_FACTS, INJURY_WORKOUTS, IP_EQUIPMENT, IP_TIMING, 
 import { YOGA } from '../../content/boosters';
 import type { Workout } from '../../content/types';
 import { Empty, HRow, Page, Tabs, VideoLinks } from '../components/common';
+import { HeatGuideList } from '../components/HeatCard';
 import { useLive } from '../hooks';
 import { go, replace } from '../router';
 import { AREA_HE } from './body-areas';
 
-type Tab = 'workouts' | 'timing' | 'rehab' | 'about';
+type Tab = 'workouts' | 'timing' | 'rehab' | 'heat' | 'about';
 
 /** Injury prevention & rehab (SPEC 5.6). */
 export function InjuryScreen({ tab }: { tab?: string }) {
-  const t = (['workouts', 'timing', 'rehab', 'about'].includes(tab ?? '') ? tab : 'workouts') as Tab;
+  const t = (['workouts', 'timing', 'rehab', 'heat', 'about'].includes(tab ?? '') ? tab : 'workouts') as Tab;
   return (
     <Page title="מניעת פציעות ושיקום" kicker="Injury Prevention & Rehab" sub="כל השנה, בכל תקופה">
-      <Tabs value={t} tabs={[{ v: 'workouts', label: 'אימונים' }, { v: 'timing', label: 'מתי' }, { v: 'rehab', label: 'שיקום' }, { v: 'about', label: 'למה' }]} onChange={(v) => replace(`/injury/${v}`)} />
+      <Tabs value={t} tabs={[{ v: 'workouts', label: 'אימונים' }, { v: 'timing', label: 'מתי' }, { v: 'rehab', label: 'שיקום' }, { v: 'heat', label: 'חום' }, { v: 'about', label: 'למה' }]} onChange={(v) => replace(`/injury/${v}`)} />
       {t === 'workouts' && <Workouts />}
       {t === 'timing' && <Timing />}
       {t === 'rehab' && <Rehab />}
+      {t === 'heat' && <HeatGuideList />}
       {t === 'about' && <About />}
     </Page>
   );

@@ -6,6 +6,7 @@ import { weakFootWorkout } from '../content/weakfoot';
 import type { Workout } from '../content/types';
 import { addDaysISO, diffDays, type ISODate } from '../domain/dates';
 import type { Game, Settings } from '../domain/schemas';
+import { deloadWorkout } from '../domain/deload';
 import { fixedGameDateFor, planFor, type DayPlanResult, type PlanItem } from '../domain/season';
 import { getSettings, updateSettings } from './entity';
 
@@ -42,7 +43,7 @@ export function gameRefs(games: Game[]) {
 }
 
 export function planWith(date: ISODate, settings: Settings, games: Game[]): DayPlanResult {
-  return planFor(date, settings.calendar, { gameDay: settings.gameWeekday, games: gameRefs(games), pushCore: settings.pushCore, weakFoot: settings.weakFoot });
+  return planFor(date, settings.calendar, { gameDay: settings.gameWeekday, games: gameRefs(games), pushCore: settings.pushCore, weakFoot: settings.weakFoot, deloadWeeks: settings.deloadWeeks ?? [] });
 }
 
 export interface ResolvedItem {
@@ -54,7 +55,8 @@ export interface ResolvedItem {
 
 export function resolveItems(plan: DayPlanResult, pc: PushCoreContext): ResolvedItem[] {
   return plan.items.map((item, i) => {
-    const workout = item.kind === 'game' ? undefined : resolveWorkout(item, pc);
+    const w = item.kind === 'game' ? undefined : resolveWorkout(item, pc);
+    const workout = w && plan.deload && item.kind !== 'prematch' ? deloadWorkout(w) : w;
     return { item, workout, key: workout?.id ?? `${item.kind}-${i}` };
   });
 }

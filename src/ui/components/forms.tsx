@@ -7,7 +7,7 @@ import { Modal, NumInput, Scale, useToast } from './common';
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
 
-/** Morning check-in: POMS 5 questions + sleep (R-TRK method 2, R-SLP). */
+/** Morning check-in: wellness score, 5 questions (R-WEL) + sleep (R-TRK method 2, R-SLP). */
 export function CheckinModal({ open, onClose, date, existing }: { open: boolean; onClose: () => void; date: string; existing?: Checkin }) {
   const toast = useToast();
   const [v, setV] = useState<Record<string, number | null>>(() => ({
@@ -32,7 +32,7 @@ export function CheckinModal({ open, onClose, date, existing }: { open: boolean;
   return (
     <Modal open={open} onClose={onClose} title="צ'ק-אין בוקר">
       <p className="small muted" style={{ marginTop: 0 }}>
-        עונים מיד כשמתעוררים: 1 = ממש לא מסכים, 5 = מסכים מאוד. בכאבי שרירים, 5 = אין כאבים בכלל.
+        מדד רווחה: עונים מיד כשמתעוררים. 1 = ממש לא מסכים, 5 = מסכים מאוד. בכאבי שרירים, 5 = אין כאבים בכלל.
       </p>
       {POMS_QUESTIONS.map((q) => (
         <div key={q.key} className="field">

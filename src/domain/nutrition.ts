@@ -1,5 +1,5 @@
 // Nutrition rules (SPEC 8): targets by day type for fat loss, kosher timeline, pantry and shopping list. Pure functions.
-import type { ISODate } from './dates';
+import { addDaysISO, diffDays, type ISODate } from './dates';
 
 export type Kosher = 'meat' | 'dairy' | 'parve' | 'fish';
 export const KOSHER_HE: Record<Kosher, string> = { meat: 'בשרי', dairy: 'חלבי', parve: 'פרווה', fish: 'דג' };
@@ -69,10 +69,13 @@ export interface DayTargets extends Macros {
   tips: string[];
 }
 
-/** R-NUT-1/2: daily targets. Protein 1.8 g/kg (nutrition guide), fat 20-25%, carbs = rest, timed around training (Bible p.165). */
+/** R-NUT-1: protein g/kg. Maintenance 1.8 (nutrition guide); cut 2.2 (SPEC 0.8, Helms et al. 2014: 2.0-2.4 g/kg bodyweight in a deficit). */
+export const proteinPerKg = (mode: GoalMode) => (mode === 'cut' ? 2.2 : 1.8);
+
+/** R-NUT-1/2: daily targets. Protein by mode, fat 20-25%, carbs = rest, timed around training (Bible p.165). */
 export function dayTargets(input: { weightKg: number; maintenance: number; mode: GoalMode; deficit: number; dayType: DayType }): DayTargets {
   const { weightKg: w, maintenance, mode, dayType } = input;
-  const protein = Math.round(w * 1.8);
+  const protein = Math.round(w * proteinPerKg(mode));
   const fuel = dayType === 'loading' || dayType === 'match';
   const deficit = mode === 'cut' && !fuel ? Math.min(500, Math.max(250, input.deficit)) : 0;
   let kcal = maintenance - deficit;
@@ -216,3 +219,55 @@ export function totalsByDate<T extends Macros & { date: ISODate }>(logs: T[]): M
   for (const l of logs) m.set(l.date, addMacros(m.get(l.date) ?? ZERO, l));
   return m;
 }
+
+// ---------- R-NUT-1a: maintenance from real intake and weight ----------
+export interface AdaptiveInput {
+  /** daily intake totals (kcal) */
+  intake: { date: ISODate; kcal: number }[];
+  weighIns: { date: ISODate; weight: number }[];
+  /** the last day of the window (yesterday) */
+  end: ISODate;
+  /** formula maintenance, for the safety bounds */
+  formula: number;
+  days?: number;
+}
+
+export type AdaptiveResult =
+  | { ok: true; kcal: number; avgIntake: number; kgPerWeek: number; loggedDays: number }
+  | { ok: false; loggedDays: number; weighIns: number; reason: 'intake' | 'weight' };
+
+const KCAL_PER_KG = 7700;
+
+/** Linear-regression slope (kg/day) of the weigh-ins against their day index. */
+function slopePerDay(points: { x: number; y: number }[]): number {
+  const n = points.length;
+  const mx = points.reduce((a, p) => a + p.x, 0) / n;
+  const my = points.reduce((a, p) => a + p.y, 0) / n;
+  const num = points.reduce((a, p) => a + (p.x - mx) * (p.y - my), 0);
+  const den = points.reduce((a, p) => a + (p.x - mx) ** 2, 0);
+  return den === 0 ? 0 : num / den;
+}
+
+/**
+ * R-NUT-1a: maintenance = average intake on logged days − daily weight change × 7700.
+ * Needs ≥10 logged days (≥1000 kcal) and ≥4 weigh-ins spanning ≥10 days in the last 14 days (ending `end`).
+ * Bounded to 75-125% of the formula, rounded to 10.
+ */
+export function adaptiveMaintenance(input: AdaptiveInput): AdaptiveResult {
+  const days = input.days ?? 14;
+  const start = addDaysISO(input.end, -(days - 1));
+  const inWin = (d: ISODate) => d >= start && d <= input.end;
+  const logged = input.intake.filter((x) => inWin(x.date) && x.kcal >= 1000);
+  const w = input.weighIns.filter((x) => inWin(x.date)).sort((a, b) => a.date.localeCompare(b.date));
+  const dayIdx = (d: ISODate) => diffDays(d, start);
+  if (logged.length < 10) return { ok: false, loggedDays: logged.length, weighIns: w.length, reason: 'intake' };
+  if (w.length < 4 || dayIdx(w[w.length - 1]!.date) - dayIdx(w[0]!.date) < 10) return { ok: false, loggedDays: logged.length, weighIns: w.length, reason: 'weight' };
+  const avgIntake = logged.reduce((a, x) => a + x.kcal, 0) / logged.length;
+  const slope = slopePerDay(w.map((x) => ({ x: dayIdx(x.date), y: x.weight })));
+  const raw = avgIntake - slope * KCAL_PER_KG;
+  const bounded = Math.min(input.formula * 1.25, Math.max(input.formula * 0.75, raw));
+  return { ok: true, kcal: Math.round(bounded / 10) * 10, avgIntake: Math.round(avgIntake), kgPerWeek: Math.round(slope * 7 * 100) / 100, loggedDays: logged.length };
+}
+
+/** Show the suggestion when it differs from what is in use by more than 100 kcal. */
+export const adaptiveWorthShowing = (estimate: number, inUse: number) => Math.abs(estimate - inUse) > 100;

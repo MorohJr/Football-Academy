@@ -26,9 +26,12 @@ export const SCHEMA_V1 = {
   lessons: 'id, date, lessonId',
 } as const;
 
-export type TableName = keyof typeof SCHEMA_V1;
-export const TABLE_NAMES = Object.keys(SCHEMA_V1) as TableName[];
-export const CURRENT_SCHEMA_VERSION = 1;
+/** v2 (SPEC 0.8): `runs` (workout in progress, R-WRK-2). New fields: sessions.loads, settings.onboardedAt/theme/deloadWeeks/maintenanceOverride. */
+export const SCHEMA_V2 = { ...SCHEMA_V1, runs: 'id' } as const;
+
+export type TableName = keyof typeof SCHEMA_V2;
+export const TABLE_NAMES = Object.keys(SCHEMA_V2) as TableName[];
+export const CURRENT_SCHEMA_VERSION = 2;
 
 export class AcademyDB extends Dexie {
   settings!: EntityTable<D.Settings, 'id'>;
@@ -47,10 +50,26 @@ export class AcademyDB extends Dexie {
   niggles!: EntityTable<D.Niggle, 'id'>;
   reviews!: EntityTable<D.WeekReview, 'id'>;
   lessons!: EntityTable<D.LessonLog, 'id'>;
+  runs!: EntityTable<D.ActiveRun, 'id'>;
 
   constructor(name = DB_NAME) {
     super(name);
     this.version(1).stores(SCHEMA_V1);
+    // Existing users already use the app: no onboarding for them (R-ONB). New fields get their defaults.
+    this.version(2)
+      .stores(SCHEMA_V2)
+      .upgrade(async (tx) => {
+        const t = new Date().toISOString();
+        await tx.table('settings').toCollection().modify((s: Record<string, unknown>) => {
+          s.onboardedAt ??= t;
+          s.theme ??= 'auto';
+          s.deloadWeeks ??= [];
+          s.maintenanceOverride ??= null;
+        });
+        await tx.table('sessions').toCollection().modify((s: Record<string, unknown>) => {
+          s.loads ??= {};
+        });
+      });
   }
 }
 

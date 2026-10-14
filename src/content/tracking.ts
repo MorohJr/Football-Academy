@@ -20,7 +20,7 @@ export const RPE_SCALE: { score: number; label: string }[] = [
 
 export type PomsKey = 'sleep' | 'lookingForward' | 'vigorous' | 'soreness' | 'appetite';
 
-/** POMS: answered every morning on waking, 1-5. Max 25 per day. Soreness 5 = no soreness. */
+/** Wellness score (R-WEL; the sheet calls it "POMS"): answered every morning on waking, 1-5. Max 25 per day. Soreness 5 = no soreness. */
 export const POMS_QUESTIONS: { key: PomsKey; he: string; en: string }[] = [
   { key: 'sleep', he: 'ישנתי טוב בלילה', en: 'I slept well last night' },
   { key: 'lookingForward', he: 'אני מחכה לאימון של היום', en: "I am looking forward to today's session" },
@@ -43,7 +43,7 @@ export const TRACKING_CHARTS: { id: string; title: string; type: 'bar' | 'line' 
   { id: 'units-daily', title: 'יחידות אימון ביום (שנה מלאה)', type: 'bar', period: 'daily' },
   { id: 'workload-monthly', title: 'עומס חודשי', type: 'bar', period: 'monthly' },
   { id: 'minutes-vs-rpe-weekly', title: 'דקות שבועיות מול RPE שבועי', type: 'combo', period: 'weekly' },
-  { id: 'minutes-vs-poms-weekly', title: 'דקות שבועיות מול POMS שבועי', type: 'combo', period: 'weekly' },
+  { id: 'minutes-vs-poms-weekly', title: 'דקות שבועיות מול מדד הרווחה השבועי', type: 'combo', period: 'weekly' },
   { id: 'units-vs-carbs', title: 'יחידות אימון מול פחמימות (יומי)', type: 'combo', period: 'daily' },
   { id: 'units-vs-fat', title: 'יחידות אימון מול שומן (יומי)', type: 'combo', period: 'daily' },
   { id: 'units-vs-calories', title: 'יחידות אימון מול קלוריות (יומי)', type: 'combo', period: 'daily' },
@@ -57,7 +57,7 @@ export const CHART_INSIGHTS: Record<string, string> = {
   'rpe-daily': 'קפיצה ב-RPE מעל הרגיל: אולי צריך יותר התאוששות. ירידה: אפשר להוסיף. לאורך זמן רוצים לראות RPE יורד או יציב כשהעומס עולה, כלומר הכושר השתפר.',
   'poms-sleep': 'כמה ימים או שבועות של שינה גרועה, יחד עם RPE, כאבי שרירים ויחידות גבוהים: השינה פוגעת בהתאוששות ועלולה להוביל לפציעת שחיקה. חפש דפוסים, למשל שינה גרועה אחרי משחק ערב או טלפון לפני השינה.',
   'minutes-vs-rpe-weekly': 'יחידות/דקות גבוהות ו-RPE יורד או יציב: הכושר משתפר. קפיצה ב-RPE כשהעומס דומה: הגוף בלחץ, שים לב להתאוששות ולתזונה.',
-  'minutes-vs-poms-weekly': 'POMS גבוה = טוב. ירידה פתאומית או מגמת ירידה: לברר למה. הרבה דקות ומצב רוח נמוך: העומס עלה יותר מדי מהר, וסיכון גבוה יותר לפציעה.',
+  'minutes-vs-poms-weekly': 'מדד רווחה גבוה = טוב. ירידה פתאומית או מגמת ירידה: לברר למה. הרבה דקות ומצב רוח נמוך: העומס עלה יותר מדי מהר, וסיכון גבוה יותר לפציעה.',
   'units-vs-carbs': 'יחידות האימון עלו? גם הפחמימות צריכות לעלות כדי להתאושש. יחידות ירדו כמה ימים והפחמימות לא? העודף עלול להפוך לשומן. מילוי גליקוגן אחרי משחק יכול לקחת עד 3 ימים.',
 };
 

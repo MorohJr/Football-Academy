@@ -20,11 +20,11 @@ export function Chart({ data, x, series, height = 170, refY, yDomain }: { data: 
     <div style={{ direction: 'ltr', width: '100%', height }}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 6, right: hasRight ? 0 : 6, left: -18, bottom: 0 }}>
-          <CartesianGrid stroke="#e3ebe5" vertical={false} />
-          <XAxis dataKey={x} tick={{ fontSize: 10, fill: '#6c786f' }} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={14} />
-          <YAxis yAxisId="l" tick={{ fontSize: 10, fill: '#6c786f' }} tickLine={false} axisLine={false} width={42} domain={yDomain ?? ['auto', 'auto']} />
-          {hasRight && <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 10, fill: '#6c786f' }} tickLine={false} axisLine={false} width={36} />}
-          <Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, direction: 'rtl' }} labelStyle={{ fontWeight: 700 }} />
+          <CartesianGrid stroke="var(--line)" vertical={false} />
+          <XAxis dataKey={x} tick={{ fontSize: 11, fill: 'var(--muted)' }} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={14} />
+          <YAxis yAxisId="l" tick={{ fontSize: 11, fill: 'var(--muted)' }} tickLine={false} axisLine={false} width={42} domain={yDomain ?? ['auto', 'auto']} />
+          {hasRight && <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 11, fill: 'var(--muted)' }} tickLine={false} axisLine={false} width={36} />}
+          <Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, direction: 'rtl', background: 'var(--surface)', color: 'var(--ink)', borderColor: 'var(--line)' }} labelStyle={{ fontWeight: 700 }} />
           {refY && <ReferenceLine yAxisId="l" y={refY.y} stroke="#c0392b" strokeDasharray="4 3" label={{ value: refY.label, fontSize: 10, fill: '#c0392b', position: 'insideTopRight' }} />}
           {series.map((s, i) => {
             const color = s.color ?? PALETTE[i % PALETTE.length] ?? G;

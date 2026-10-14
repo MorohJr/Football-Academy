@@ -4,14 +4,17 @@ import { navyBodyFatMale, strengthStatus, trendWeight } from './body';
 import { SEED_ITEMS, SEED_MEALS } from '../content/pantry';
 
 describe('targets (R-NUT)', () => {
-  it('cut: deficit 400, protein 1.8 g/kg, carbs = rest; pre/post carbs on intense days', () => {
+  it('cut: deficit 400, protein 2.2 g/kg (SPEC 0.8), carbs = rest; pre/post carbs on intense days', () => {
     const t = dayTargets({ weightKg: 72, maintenance: 2850, mode: 'cut', deficit: 400, dayType: 'intense' });
     expect(t.kcal).toBe(2450);
-    expect(t.protein).toBe(130);
+    expect(t.protein).toBe(158);
     expect(t.fat).toBe(60);
-    expect(t.carbs).toBe(348);
+    expect(t.carbs).toBe(320);
     expect(t.preCarbs).toBe(144);
     expect(t.postCarbs).toEqual([72, 144]);
+  });
+  it('maintenance: protein 1.8 g/kg (nutrition guide)', () => {
+    expect(dayTargets({ weightKg: 72, maintenance: 2850, mode: 'maintain', deficit: 400, dayType: 'rest' }).protein).toBe(130);
   });
   it('deficit is clamped to 250-500 (Bible)', () => {
     expect(dayTargets({ weightKg: 72, maintenance: 2850, mode: 'cut', deficit: 900, dayType: 'rest' }).deficit).toBe(500);

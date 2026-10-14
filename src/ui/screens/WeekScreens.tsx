@@ -5,6 +5,7 @@ import type { Game } from '../../domain/schemas';
 import { DEFAULT_CALENDAR, PROGRAMME_HE, PROGRAMME_WEEKS, yearBlocks, type SeasonBlock } from '../../domain/season';
 import type { ProgrammeId } from '../../content/types';
 import { updateSettings } from '../../services/entity';
+import { isDeloadWeek, toggleDeload, weeksSinceDeload } from '../../domain/deload';
 import { changeGameDay, gamesAround, planWith, pushCoreContext, resolveItems } from '../../services/plan';
 import { logSession } from '../../services/sessions';
 import { ConfirmButton, DAYS_HE, fmtDate, fmtDateFull, HRow, Modal, NumInput, Page, Seg, useToast } from '../components/common';
@@ -39,6 +40,9 @@ export function WeekScreen() {
   }, [s, ws, today]);
   if (!s || !data) return null;
   const first = data.days[0]!.plan;
+  const deload = isDeloadWeek(ws, s.deloadWeeks);
+  const since = weeksSinceDeload(s.deloadWeeks, ws);
+  const weeksIn = since ?? (first.period.programme === 'inseason' && first.week ? first.week - 1 : null);
   return (
     <Page title={offset === 0 ? 'השבוע' : `שבוע ${fmtDate(ws)}`} kicker={`${PROGRAMME_HE[first.period.programme]} · ${first.label}`} sub={`${fmtDate(ws)} – ${fmtDate(addDaysISO(ws, 6))}`}>
       <div className="row between mb">
@@ -54,6 +58,31 @@ export function WeekScreen() {
           הבא <Icon name="chev" size="sm" />
         </button>
       </div>
+      {offset >= 0 && (
+        <div className={`card ${deload ? 'white' : ''}`} style={deload ? { borderColor: 'var(--core)', borderWidth: 2 } : undefined}>
+          <div className="row">
+            <div className="grow small">
+              <b>שבוע הורדת עומס</b>
+              <div className="xs muted">
+                חצי מהסטים, אותו משקל (Matchfit: אחרי 4-6 שבועות).
+                {since != null ? ` עברו ${since} שבועות מהאחרון.` : ''}
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`btn sm ${deload ? '' : 'sec'}`}
+              aria-pressed={deload}
+              onClick={async () => {
+                await updateSettings({ deloadWeeks: toggleDeload(s.deloadWeeks, ws) });
+                toast(deload ? 'השבוע חוזר לרגיל' : 'שבוע הורדת עומס: חצי מהסטים');
+              }}
+            >
+              {deload ? 'פעיל · בטל' : 'הפעל'}
+            </button>
+          </div>
+          {!deload && first.period.programme === 'inseason' && (weeksIn ?? 0) >= 4 && <div className="okbox">עברו {weeksIn} שבועות. אם הגוף עייף, זה זמן טוב לשבוע הורדת עומס.</div>}
+        </div>
+      )}
       {data.days.map(({ d, plan, items, logs, game }) => {
         const isToday = d === today;
         const doneIds = new Set(logs.map((l) => l.workoutId));
@@ -79,7 +108,7 @@ export function WeekScreen() {
             {items
               .filter((i) => i.workout)
               .map((it, i) => (
-                <div key={i} className={`wrow tap ${doneIds.has(it.workout!.id) ? 'done' : ''}`} style={{ ['--c' as string]: categoryColor(it.workout!.category), background: '#fff' }} onClick={() => go(`/w/${it.workout!.id}`)}>
+                <div key={i} className={`wrow tap ${doneIds.has(it.workout!.id) ? 'done' : ''}`} style={{ ['--c' as string]: categoryColor(it.workout!.category), background: 'var(--surface)' }} onClick={() => go(`/w/${it.workout!.id}`)}>
                   <div className="step">{doneIds.has(it.workout!.id) ? '✓' : i + 1}</div>
                   <div className="grow">
                     <div className="ttl">{it.workout!.subtitle?.split(' · ')[0] ?? it.workout!.title}</div>

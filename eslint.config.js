@@ -18,4 +18,6 @@ export default tseslint.config(
     },
   },
   { files: ['src/services/barcode.ts'], rules: { 'no-restricted-globals': 'off' } },
+  // SPEC 16.3: small screen files. A screen that grows past this splits into a folder (e.g. screens/food/).
+  { files: ['src/ui/**/*.tsx'], rules: { 'max-lines': ['error', { max: 500 }] } },
 );

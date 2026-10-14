@@ -218,7 +218,7 @@ const SIDE_HE = { L: 'שמאל', R: 'ימין', C: 'מרכז' } as const;
 function BodyMap({ view, selected, active, onPick }: { view: 'front' | 'back'; selected: string | null; active: Set<string>; onPick: (k: string, side: 'L' | 'R' | 'C') => void }) {
   return (
     <svg viewBox="0 0 100 232" style={{ width: 150, height: 348 }} aria-label={view === 'front' ? 'מלפנים' : 'מאחור'}>
-      <g fill="#eef3ef" stroke="#9aa59d" strokeWidth="1">
+      <g fill="var(--surface3)" stroke="#9aa59d" strokeWidth="1">
         <circle cx="50" cy="14" r="10" />
         <rect x="30" y="26" width="40" height="56" rx="10" />
         <rect x="17" y="28" width="11" height="50" rx="5" />
@@ -238,7 +238,7 @@ function BodyMap({ view, selected, active, onPick }: { view: 'front' | 'back'; s
             cx={x}
             cy={y}
             r={selected === k ? 4.6 : 3.6}
-            fill={selected === k ? '#1f7a3a' : active.has(k) ? '#c0392b' : '#fff'}
+            fill={selected === k ? '#1f7a3a' : active.has(k) ? '#c0392b' : 'var(--surface)'}
             stroke={active.has(k) ? '#c0392b' : '#1f7a3a'}
             strokeWidth="1.5"
             style={{ cursor: 'pointer' }}
@@ -248,7 +248,7 @@ function BodyMap({ view, selected, active, onPick }: { view: 'front' | 'back'; s
           </circle>
         ));
       })}
-      <text x="50" y="229" textAnchor="middle" fontSize="7" fill="#6c786f">
+      <text x="50" y="229" textAnchor="middle" fontSize="7" fill="var(--muted)">
         {view === 'front' ? 'מלפנים' : 'מאחור'}
       </text>
     </svg>
