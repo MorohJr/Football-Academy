@@ -121,7 +121,7 @@ export interface Acwr {
 
 /**
  * R-TRK-4: acute:chronic workload (Bible, "Key principles of pre-season training", Gabbett).
- * acute = this week's units, chronic = average of the previous 4 weeks. ratio ≥ 1.4 → injury risk rises sharply.
+ * acute = this week's units, chronic = average of the previous 4 weeks. ratio ≥ 1.4 → load jumped fast, slow down (SPEC 15.12: a signal, not an injury prediction).
  * Needs 4 previous weeks with any data; otherwise unknown.
  */
 export function acwr(weeks: WeekSummary[], currentWeekStart: ISODate): Acwr {

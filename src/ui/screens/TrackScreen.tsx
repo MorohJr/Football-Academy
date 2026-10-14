@@ -85,7 +85,7 @@ export function TrackScreen({ tab: tab0 }: { tab?: string }) {
           <ChartBox title="17 · דקות אימון (שבועי)">
             <Chart data={weekly} x="w" series={[{ key: 'minutes', label: 'דקות', type: 'bar', color: C.b }]} />
           </ChartBox>
-          <ChartBox title="18 · עומס חריג (ACWR)" insight="עומס השבוע חלקי הממוצע של 4 השבועות הקודמים. מעל 1.4 הסיכון לפציעה עולה מאוד (Bible). צריך 4 שבועות של נתונים.">
+          <ChartBox title="18 · עומס חריג (ACWR)" insight="עומס השבוע חלקי הממוצע של 4 השבועות הקודמים. מעל 1.4 העומס קפץ מהר: סימן להאט, לא תחזית פציעה ודאית. צריך 4 שבועות של נתונים.">
             <Chart data={weekly} x="w" series={[{ key: 'acwr', label: 'ACWR', type: 'line', color: C.y }]} refY={{ y: 1.4, label: '1.4' }} />
           </ChartBox>
           <ChartBox title="9 · עומס חודשי (יחידות)">
